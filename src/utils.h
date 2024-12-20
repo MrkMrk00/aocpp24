@@ -2,46 +2,48 @@
 
 #include <algorithm>
 #include <cctype>
+#include <format>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <ranges>
 
 template<typename T>
 std::string vec_to_string(const std::vector<T>& vec)
 {
-    std::string result = "[";
+    std::ostringstream printed_vec;
+    printed_vec << "[ ";
 
     for (int i = 0; i < vec.size(); i++) {
-        auto item = vec[i];
-
-        result.append(std::to_string(item));
+        printed_vec << vec[i];
 
         if (i != vec.size() - 1) {
-            result.append(", ");
+            printed_vec << ", ";
         }
     }
 
-    result.append("]");
+    printed_vec << " ]";
 
-    return result;
+    return printed_vec.str();
 }
 
-std::string map_to_string(const std::unordered_map<int, int>& map) {
-    std::string result = "{ ";
+template<typename MapType>
+std::string map_to_string(const MapType& map) {
+    std::ostringstream printed_map;
+    printed_map << "{ ";
 
     int cur = 0;
     for (auto [key, value] : map) {
-        result.append(std::to_string(key));
-        result.append(": ");
-        result.append(std::to_string(value));
+        printed_map << std::format("{}: {}", key, value);
 
         if (cur++ != map.size() - 1) {
-            result.append(", ");
+            printed_map << ", ";
         }
     }
 
-    result.append(" }");
+    printed_map << " }";
 
-    return result;
+    return printed_map.str();
 }
 
