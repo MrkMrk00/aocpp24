@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 
 struct Board
 {
@@ -304,30 +305,10 @@ int solve_and_print_a(const Board& board)
     return 0;
 }
 
-struct Position
-{
-    size_t row, col;
-};
-
-struct MasOccurrence
-{
-    std::array<Position, 3> positions{};
-
-    bool intersects(const MasOccurrence& other) const
-    {
-        return other.positions[1].col == positions[1].col &&
-               other.positions[1].row == positions[1].row;
-    }
-};
-
-// Bylo by jednodušší a rychleší ukládat jen prostřední char
-// do nějaký mapy a pak vybrat jen klíče, které > 1.
-// Ale takhle to je jednodušší debuggovat, kdybych to někde
-// napsal špatně.
 int solve_and_print_b(const Board& board)
 {
     const std::string needle = "MAS";
-    std::vector<MasOccurrence> occurrences;
+    std::unordered_map<size_t, int> intersections;
 
     const size_t max_row = board.n_rows - needle.length();
     const size_t max_col = board.n_cols - needle.length();
@@ -336,20 +317,18 @@ int solve_and_print_b(const Board& board)
 
     for (size_t row = 0; row <= max_row; row++) {
         for (size_t col = 0; col <= max_col; col++) {
-            MasOccurrence occ;
+            const size_t middle_position_index =
+              board.get_data_index(row + 1, col + 1);
 
             bool matches_forwards = true;
             for (size_t offset = 0; offset < needle.length(); offset++) {
                 if (board.at(row + offset, col + offset) != needle[offset]) {
                     matches_forwards = false;
                 }
-
-                occ.positions[offset] = { .row = row + offset,
-                                          .col = col + offset };
             }
 
             if (matches_forwards) {
-                occurrences.push_back(std::move(occ));
+                intersections[middle_position_index]++;
 
                 continue;
             }
@@ -358,16 +337,12 @@ int solve_and_print_b(const Board& board)
             for (size_t offset = 0; offset < needle.length(); offset++) {
                 if (board.at(row + offset, col + offset) !=
                     needle[needle.length() - offset - 1]) {
-                std::internal(ios_base &base)
                     matches_backwards = false;
                 }
-
-                occ.positions[offset] = { .row = row + offset,
-                                          .col = col + offset };
             }
 
             if (matches_backwards) {
-                occurrences.push_back(std::move(occ));
+                intersections[middle_position_index]++;
             }
         }
     }
@@ -375,20 +350,18 @@ int solve_and_print_b(const Board& board)
     // / Diagonally
     for (size_t row = 0; row <= max_row; row++) {
         for (size_t col = board.n_cols - 1; col >= needle.length() - 1; col--) {
-            MasOccurrence occ;
+            const size_t middle_position_index =
+              board.get_data_index(row + 1, col - 1);
 
             bool matches_forwards = true;
             for (size_t offset = 0; offset < needle.length(); offset++) {
                 if (board.at(row + offset, col - offset) != needle[offset]) {
                     matches_forwards = false;
                 }
-
-                occ.positions[offset] = { .row = row + offset,
-                                          .col = col - offset };
             }
 
             if (matches_forwards) {
-                occurrences.push_back(std::move(occ));
+                intersections[middle_position_index]++;
 
                 continue;
             }
@@ -399,40 +372,25 @@ int solve_and_print_b(const Board& board)
                     needle[needle.length() - offset - 1]) {
                     matches_backwards = false;
                 }
-
-                occ.positions[offset] = { .row = row + offset,
-                                          .col = col - offset };
             }
 
             if (matches_backwards) {
-                occurrences.push_back(std::move(occ));
+                intersections[middle_position_index]++;
             }
         }
     }
 
-    for (const auto& occ : occurrences) {
-        std::cout << std::format("Occurence ({}, {}), ({}, {}), ({}, {})\n",
-                                 occ.positions[0].row,
-                                 occ.positions[0].col,
-                                 occ.positions[1].row,
-                                 occ.positions[1].col,
-                                 occ.positions[2].row,
-                                 occ.positions[2].col);
-    }
+    int total_intersections_count = 0;
 
-    int intersections_count = 0;
+    for (const auto& intersection_item : intersections) {
+        int intersection_count = intersection_item.second;
 
-    for (size_t i = 0; i < occurrences.size(); i++) {
-        const MasOccurrence& ith_occ = occurrences[i];
-
-        for (size_t j = i + 1; j < occurrences.size(); j++) {
-            if (ith_occ.intersects(occurrences[j])) {
-                intersections_count++;
-            }
+        if (intersection_count > 1) {
+            total_intersections_count++;
         }
     }
 
-    std::cout << "Intersections count: " << intersections_count << '\n';
+    std::cout << "Intersections count: " << total_intersections_count << '\n';
 
     return 0;
 }
