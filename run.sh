@@ -22,7 +22,7 @@ EXE="/tmp/aocpp24-$(md5sum $SOURCE_ABS | cut -d' ' -f1)-${ARGS_SUM}.out"
 
 if [[ ! -f "$EXE" ]]; then
     echo "Compiling ${SOURCE} with custom args: \"${ARGS}\""
-    $COMPILER $FLAGS $SOURCE_ABS $ARGS -o $EXE
+    $COMPILER $FLAGS $SOURCE_ABS $ARGS -o $EXE || exit 1
 else
     echo "Using cached executable: \"${EXE}\""
 fi
