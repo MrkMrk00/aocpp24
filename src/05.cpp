@@ -22,12 +22,6 @@ struct Rule
 {
     const int first, second;
 
-    Rule(int first_, int second_)
-      : first{ first_ }
-      , second{ second_ }
-    {
-    }
-
     bool validate(const std::vector<int>& update) const
     {
         int first_idx = index_of(update, first);
@@ -48,11 +42,9 @@ static bool is_update_valid(const std::vector<Rule>& rules,
                             const std::vector<int>& update)
 {
     for (const Rule& rule : rules) {
-        if (rule.validate(update)) {
-            continue;
+        if (!rule.validate(update)) {
+            return false;
         }
-
-        return false;
     }
 
     return true;
@@ -95,8 +87,11 @@ int main(int argc, char* argv[])
 #else
     std::ifstream input{ "./input/05.txt" };
 #endif
-    std::vector<Rule> rules;
 
+    // Parse out all the rules into a vector.
+    // They will be re-used on multiple places
+    // to iterate over.
+    std::vector<Rule> rules;
     do {
         int first, second;
 
@@ -110,10 +105,11 @@ int main(int argc, char* argv[])
 
     input.ignore(1, '\n');
 
-    int updates_middle_sum = 0;
-
-    // read the update integers
+    // Read the update integers into a single shared vector.
     std::vector<int> update;
+
+    int result = 0;
+
     while (input) {
         update.clear();
         while (input.peek() == '\n') {
@@ -124,6 +120,7 @@ int main(int argc, char* argv[])
             break;
         }
 
+        // Read the comma separated update pages.
         while (input && input.peek() != '\n') {
             int read;
             input >> read;
@@ -136,51 +133,55 @@ int main(int argc, char* argv[])
 
         bool is_valid = is_update_valid(rules, update);
 
-        if (is_second_solution(argc, argv)) {
+        // First part: sum up the middle numbers of
+        // correctly ordered updates.
+        if (!is_second_solution(argc, argv)) {
             if (is_valid) {
-                continue;
+                int middle_value = update[static_cast<int>(update.size() / 2)];
+
+                result += middle_value;
             }
 
-            // Second part: sort the invalid updates
-            // according to the rules.
-            do {
-                for (const Rule& rule : rules) {
-                    int first_idx = index_of(update, rule.first);
-                    if (first_idx == NOT_FOUND) {
-                        continue;
-                    }
-
-                    int second_idx = index_of(update, rule.second);
-                    if (second_idx == NOT_FOUND) {
-                        continue;
-                    }
-
-                    // is correct according to this rule
-                    if (first_idx < second_idx) {
-                        continue;
-                    }
-
-                    // swap
-                    int temp = update[first_idx];
-                    update[first_idx] = update[second_idx];
-                    update[second_idx] = temp;
-                }
-            } while (!is_update_valid(rules, update));
-
-            std::cout << std::format("Sorted invalid update: {}\n",
-                                     vec_to_string(update));
-
-            int middle_value = update[static_cast<int>(update.size() / 2)];
-
-            updates_middle_sum += middle_value;
-        } else if (is_valid) {
-            // First part: sum up the middle numbers of
-            // correctly ordered updates.
-            int middle_value = update[static_cast<int>(update.size() / 2)];
-
-            updates_middle_sum += middle_value;
+            continue;
         }
+
+        // Second part: sort the *invalid* updates
+        // according to the rules.
+        if (is_valid) {
+            continue;
+        }
+
+        // Swap the pages until the update is correctly ordered.
+        do {
+            for (const Rule& rule : rules) {
+                int first_idx = index_of(update, rule.first);
+                if (first_idx == NOT_FOUND) {
+                    continue;
+                }
+
+                int second_idx = index_of(update, rule.second);
+                if (second_idx == NOT_FOUND) {
+                    continue;
+                }
+
+                // is correct according to this rule
+                if (first_idx < second_idx) {
+                    continue;
+                }
+
+                // swap
+                int temp = update[first_idx];
+                update[first_idx] = update[second_idx];
+                update[second_idx] = temp;
+            }
+        } while (!is_update_valid(rules, update));
+
+        std::cout << std::format("Sorted invalid update: {}\n",
+                                 vec_to_string(update));
+
+        int middle_value = update[static_cast<int>(update.size() / 2)];
+        result += middle_value;
     }
 
-    std::cout << std::format("Updates middle sum = {}\n", updates_middle_sum);
+    std::cout << std::format("Updates middle sum = {}\n", result);
 }
