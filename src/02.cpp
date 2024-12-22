@@ -1,4 +1,5 @@
 #include "./utils.h"
+
 #include <format>
 #include <fstream>
 #include <iostream>
@@ -11,38 +12,49 @@ static bool vec_is_safe(const std::vector<int>& vec)
         return true;
     }
 
-    // in increasing order
-    if (vec[0] < vec[vec.size() - 1]) {
-        for (int i = 1; i < vec.size(); i++) {
-            int prev = vec[i - 1];
-            int current = vec[i];
-
-            int diff = current - prev;
-
-            if (diff > 3 || diff < 1) {
-                return false;
-            }
-        }
-        // in decreasing order
-    } else if (vec[0] > vec[vec.size() - 1]) {
-        for (int i = 1; i < vec.size(); i++) {
-            int prev = vec[i - 1];
-            int current = vec[i];
-
-            int diff = prev - current;
-
-            if (diff > 3 || diff < 1) {
-                return false;
-            }
-        }
-    } else {
+    if (vec[0] == vec[vec.size() - 1]) {
         return false;
+    }
+
+    const int direction = vec[0] < vec[vec.size() - 1] ? 1 : -1;
+
+    for (size_t i = 1; i < vec.size(); i++) {
+        int prev = vec[i - 1];
+        int current = vec[i];
+
+        int diff = (current - prev) * direction;
+
+        if (diff > 3 || diff < 1) {
+            return false;
+        }
     }
 
     return true;
 }
 
-int main()
+static bool vec_is_safe_when_skipped(const std::vector<int>& vec)
+{
+    if (vec_is_safe(vec)) {
+        return true;
+    }
+
+    for (size_t i = 0; i < vec.size(); i++) {
+        // copy for each iteration :/
+        std::vector<int> mutated_vec = vec;
+        mutated_vec.erase(mutated_vec.begin() + i);
+
+        std::cout << std::format("\t mutated vec: {}\n",
+                                 vec_to_string(mutated_vec));
+
+        if (vec_is_safe(mutated_vec)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int main(int argc, char* argv[])
 {
 #ifdef TEST
     std::istringstream input{
@@ -76,7 +88,13 @@ int main()
             continue;
         }
 
-        bool is_safe = vec_is_safe(report);
+        bool is_safe;
+        if (is_second_solution(argc, argv)) {
+            is_safe = vec_is_safe_when_skipped(report);
+        } else {
+            is_safe = vec_is_safe(report);
+        }
+
         std::cout << std::format(
           "report: {} - safe?: {}\n", vec_to_string(report), is_safe);
 
