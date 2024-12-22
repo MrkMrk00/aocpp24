@@ -1,26 +1,21 @@
 #include "utils.h"
 
 #include <algorithm>
+#include <bitset>
 #include <cassert>
 #include <cctype>
 #include <format>
 #include <fstream>
 #include <iostream>
 #include <istream>
-#include <set>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
 
-static bool is_terminating_char(char ch)
-{
-    return ch == '\0' || ch == EOF;
-}
-
 struct Call
 {
-    const std::string identifier{};
+    std::string_view identifier{};
     std::vector<int> arguments{};
 };
 
@@ -28,26 +23,26 @@ static std::vector<Call> parse_calls(
   const std::string& input,
   const std::vector<std::string>& valid_identifiers)
 {
-    std::set<char> first_chars;
-
-    // initialize a set with first chars of all valid identifiers
+    // initialize a bistset with first chars of all valid identifiers
     // somewhat speedup lookup?
-    for (const std::string& identifier : valid_identifiers) {
-        first_chars.insert(identifier[0]);
+    std::bitset<256> first_chars;
+
+    for (const std::string& identifier_ : valid_identifiers) {
+        first_chars[static_cast<unsigned char>(identifier_[0])] = true;
     }
 
     std::vector<Call> calls;
 
-    int position = 0;
-    char ch;
+    size_t position = 0;
 next_char:
-    while (!is_terminating_char(ch = input[position++])) {
-        if (!first_chars.contains(ch)) {
+    while (position < input.length()) {
+        char ch = input[position++];
+        if (!first_chars[static_cast<unsigned char>(ch)]) {
             continue;
         }
 
-        int current_position = position - 1;
-        std::string found_identifier = "";
+        size_t current_position = position - 1;
+        std::string_view found_identifier;
         for (const std::string& identifier : valid_identifiers) {
             // if the identifier would end after the input string ends
             if ((current_position + identifier.length()) >= input.length()) {
@@ -69,7 +64,7 @@ next_char:
         size_t position_after_identifier_with_args =
           current_position + found_identifier.length() + 2;
 
-        if (found_identifier == "" ||
+        if (found_identifier.empty() ||
             position_after_identifier_with_args > input.length()) {
             continue;
         }
@@ -93,7 +88,7 @@ next_char:
         char ch_arg;
         while ((ch_arg = input[++current_position]) != ')') {
             // invalid argument format
-            if (!::isdigit(ch_arg) && ch_arg != ',') {
+            if (!std::isdigit(ch_arg) && ch_arg != ',') {
                 // Yes goto :), otherwise I would have to check
                 // if the args_oss stream is complete and valid.
                 // This is far easier (and arguably more readable).
@@ -110,7 +105,7 @@ next_char:
         }
 
         if (arguments_count == 0) {
-            calls.emplace_back(std::move(found_identifier));
+            calls.emplace_back(found_identifier);
 
             continue;
         }
@@ -123,7 +118,7 @@ next_char:
             assert(args_stream.ignore(1, ','));
             assert(args_stream >> second);
 
-            calls.emplace_back(std::move(found_identifier),
+            calls.emplace_back(found_identifier,
                                std::vector<int>{ first, second });
 
             continue;
