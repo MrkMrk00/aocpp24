@@ -1,3 +1,4 @@
+#include "utils.h"
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -7,7 +8,7 @@
 
 constexpr int NOT_FOUND = -1;
 
-int index_of(const std::vector<int> haystack, int needle)
+static int index_of(const std::vector<int>& haystack, int needle)
 {
     auto offset = std::find(haystack.begin(), haystack.end(), needle);
     if (offset == haystack.end()) {
@@ -26,9 +27,38 @@ struct Rule
       , second{ second_ }
     {
     }
+
+    bool validate(const std::vector<int>& update) const
+    {
+        int first_idx = index_of(update, first);
+        if (first_idx == NOT_FOUND) {
+            return true;
+        }
+
+        int second_idx = index_of(update, second);
+        if (second_idx == NOT_FOUND) {
+            return true;
+        }
+
+        return first_idx < second_idx;
+    }
 };
 
-int main()
+static bool is_update_valid(const std::vector<Rule>& rules,
+                            const std::vector<int>& update)
+{
+    for (const auto& rule : rules) {
+        if (rule.validate(update)) {
+            continue;
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+int main(int argc, char* argv[])
 {
 #ifdef TEST
     const std::string input_str{ R"(47|53
@@ -80,7 +110,7 @@ int main()
 
     input.ignore(1, '\n');
 
-    int valid_updates_middle_sum = 0;
+    int updates_middle_sum = 0;
 
     // read the update integers
     std::vector<int> update;
@@ -104,33 +134,53 @@ int main()
             }
         }
 
-        // check if update is valid
-        bool is_valid = true;
-        for (const auto& rule : rules) {
-            int first_idx = index_of(update, rule.first);
-            if (first_idx == NOT_FOUND) {
+        bool is_valid = is_update_valid(rules, update);
+
+        if (is_second_solution(argc, argv)) {
+            if (is_valid) {
                 continue;
             }
 
-            int second_idx = index_of(update, rule.second);
-            if (second_idx == NOT_FOUND) {
-                continue;
-            }
+            // Second part: sort the invalid updates
+            // according to the rules.
+            do {
+                for (const auto& rule : rules) {
+                    int first_idx = index_of(update, rule.first);
+                    if (first_idx == NOT_FOUND) {
+                        continue;
+                    }
 
-            if (first_idx > second_idx) {
-                is_valid = false;
+                    int second_idx = index_of(update, rule.second);
+                    if (second_idx == NOT_FOUND) {
+                        continue;
+                    }
 
-                break;
-            }
-        }
+                    // is correct according to this rule
+                    if (first_idx < second_idx) {
+                        continue;
+                    }
 
-        if (is_valid) {
+                    // swap
+                    int temp = update[first_idx];
+                    update[first_idx] = update[second_idx];
+                    update[second_idx] = temp;
+                }
+            } while (!is_update_valid(rules, update));
+
+            std::cout << std::format("Sorted invalid update: {}\n",
+                                     vec_to_string(update));
+
             int middle_value = update[static_cast<int>(update.size() / 2)];
 
-            valid_updates_middle_sum += middle_value;
+            updates_middle_sum += middle_value;
+        } else if (is_valid) {
+            // First part: sum up the middle numbers of
+            // correctly ordered updates.
+            int middle_value = update[static_cast<int>(update.size() / 2)];
+
+            updates_middle_sum += middle_value;
         }
     }
 
-    std::cout << std::format("Valid updates middle value sum = {}\n",
-                             valid_updates_middle_sum);
+    std::cout << std::format("Updates middle sum = {}\n", updates_middle_sum);
 }
