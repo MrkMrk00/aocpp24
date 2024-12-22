@@ -1,9 +1,7 @@
-#include "./utils.h"
+#include "utils.h"
 #include <format>
 #include <fstream>
 #include <iostream>
-#include <sstream>
-#include <string>
 #include <vector>
 
 int main()
@@ -38,7 +36,7 @@ int main()
     std::sort(B.begin(), B.end());
 
     int sum = 0;
-    for (int i = 0; i < A.size(); i++) {
+    for (size_t i = 0; i < A.size(); i++) {
         int a = A[i];
         int b = B[i];
 
