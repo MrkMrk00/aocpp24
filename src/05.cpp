@@ -47,7 +47,7 @@ struct Rule
 static bool is_update_valid(const std::vector<Rule>& rules,
                             const std::vector<int>& update)
 {
-    for (const auto& rule : rules) {
+    for (const Rule& rule : rules) {
         if (rule.validate(update)) {
             continue;
         }
@@ -144,7 +144,7 @@ int main(int argc, char* argv[])
             // Second part: sort the invalid updates
             // according to the rules.
             do {
-                for (const auto& rule : rules) {
+                for (const Rule& rule : rules) {
                     int first_idx = index_of(update, rule.first);
                     if (first_idx == NOT_FOUND) {
                         continue;
