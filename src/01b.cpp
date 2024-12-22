@@ -2,7 +2,6 @@
 #include <format>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <unordered_map>
 
 int main()
@@ -36,10 +35,11 @@ int main()
     }
 
     std::unordered_map<int, int> counts;
-
     for (auto b : B) {
         counts[b]++;
     }
+
+    std::cout << map_to_string(counts) << std::endl;
 
     int sum = 0;
     for (auto a : A) {
