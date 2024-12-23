@@ -176,21 +176,19 @@ int main(int argc, char* argv[])
         // move to the new appropriate position
         new_position.move(guard.direction);
 
-        // the new position is outside of the board space
+        // The new position is outside of the board space.
+        //  -> This is the end state.
         if (!board.is_valid_position(new_position)) {
             break;
         }
 
-        // the new positions contains an obstacle
-        //  -> turn right and continue
         if (board.has_obstacle_at(new_position)) {
             guard.rotate_right();
 
             continue;
         }
 
-        // The new position is valid -> assign it to the guard
-        // and add it to the set of visited positions.
+        // The new position is valid and not final.
         guard.position = new_position;
         visited_positions.insert(board.get_index(new_position));
     }
@@ -209,25 +207,18 @@ int main(int argc, char* argv[])
     int positions_causing_loops = 0;
 
     // First remove the initial guard position.
-    // That is the only one, where an obstacle
-    // can't be placed.
+    // The only one, where an obstacle can't be placed.
     visited_positions.erase(board.guard_position);
 
     // Save the guard state when it encounters
-    // an obstacle. If this position
-    // is visited more than once, then we know,
-    // that the guard is stuck inside a loop.
+    // an obstacle.
+    //  -> If this position is visited more than once,
+    //     the guard is stuck inside of a loop.
     std::unordered_map<size_t, Direction> obstacle_states;
 
     for (size_t position : visited_positions) {
-        // Since the positions was visited by
-        // the guard in the previous run,
-        // the path shouldn't contain any obstacles.
         assert(board.data[position] == EMPTY);
 
-        // Always reset the state of the guard
-        // and the obstacle states of the guard
-        // before trying to insert obstacles.
         guard = board.get_initial_guard();
         obstacle_states.clear();
 
@@ -239,8 +230,6 @@ int main(int argc, char* argv[])
         // Traverse the same way as before
         while (board.is_valid_position(guard.position)) {
             Position new_position = guard.position;
-
-            // move to the new appropriate position
             new_position.move(guard.direction);
 
             // The new position is outside of the board space.
@@ -253,13 +242,10 @@ int main(int argc, char* argv[])
 
             size_t new_position_index = board.get_index(new_position);
 
-            // the new positions contains an obstacle
-            //  -> turn right and continue
             if (board.has_obstacle_at(new_position)) {
-
                 // This position was already visited
                 // and the guard was facing the same direction.
-                //    -> Stuck inside a loop.
+                //  -> Stuck inside a loop.
                 if (obstacle_states.contains(new_position_index) &&
                     obstacle_states[new_position_index] == guard.direction) {
                     will_loop = true;
@@ -276,12 +262,12 @@ int main(int argc, char* argv[])
                 continue;
             }
 
-            // The new position is valid -> assign it to the guard
-            // and add it to the set of visited positions.
+            // Continue with the new position.
             guard.position = new_position;
         }
 
         board.data[position] = EMPTY;
+
         if (will_loop) {
             positions_causing_loops++;
         }
