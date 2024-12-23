@@ -1,3 +1,5 @@
+#include "./utils.h"
+
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -5,6 +7,14 @@
 #include <sstream>
 #include <string>
 #include <unordered_set>
+
+enum PositionOccupancy
+{
+    GUARD = '^',
+    OBSTACLE = '#',
+    INSERTED_OBSTACLE = 'O',
+    EMPTY = '.',
+};
 
 enum Direction
 {
@@ -17,12 +27,48 @@ enum Direction
 struct Position
 {
     size_t row, col;
+
+    void move(const Direction direction)
+    {
+        switch (direction) {
+            case NORTH:
+                row--;
+                break;
+            case EAST:
+                col++;
+                break;
+            case SOUTH:
+                row++;
+                break;
+            case WEST:
+                col--;
+                break;
+        }
+    }
 };
 
 struct Guard
 {
     Position position;
     Direction direction;
+
+    void rotate_right()
+    {
+        switch (direction) {
+            case NORTH:
+                direction = EAST;
+                break;
+            case EAST:
+                direction = SOUTH;
+                break;
+            case SOUTH:
+                direction = WEST;
+                break;
+            case WEST:
+                direction = NORTH;
+                break;
+        }
+    }
 };
 
 struct Board
@@ -50,7 +96,7 @@ struct Board
         data[guard_position] = '.';
     }
 
-    size_t get_index(Position pos) const
+    size_t get_index(const Position& pos) const
     {
         assert(pos.row < n_rows);
         assert(pos.col < n_cols);
@@ -58,7 +104,7 @@ struct Board
         return (pos.row * n_cols) + pos.col;
     }
 
-    bool is_valid_pos(Position pos) const
+    bool is_valid_position(const Position& pos) const
     {
         // The size_t type is unsigned and will therefor
         // underflow if the guard leaves the top or left
@@ -68,7 +114,7 @@ struct Board
         return pos.row < n_rows && pos.col < n_cols;
     }
 
-    Position index_to_pos(size_t index) const
+    Position index_to_position(size_t index) const
     {
         return {
             .row = index / n_rows,
@@ -79,14 +125,24 @@ struct Board
     Guard get_initial_guard() const
     {
         return {
-            .position = index_to_pos(guard_position),
+            .position = index_to_position(guard_position),
             .direction = NORTH,
         };
     }
+
+    bool has_obstacle_at(const Position& pos)
+    {
+        char board_value = data[get_index(pos)];
+
+        return board_value == OBSTACLE || board_value == INSERTED_OBSTACLE;
+    }
 };
 
-int main()
+int main(int argc, char* argv[])
 {
+    (void)argc;
+    (void)argv;
+
 #ifdef TEST
     std::istringstream input{ "....#.....\n"
                               ".........#\n"
@@ -114,45 +170,21 @@ int main()
     // "...Including the guard's starting position..."
     visited_positions.insert(board.get_index(guard.position));
 
-    while (board.is_valid_pos(guard.position)) {
+    while (board.is_valid_position(guard.position)) {
         Position new_position = guard.position;
-        switch (guard.direction) {
-            case NORTH:
-                new_position.row--;
-                break;
-            case EAST:
-                new_position.col++;
-                break;
-            case SOUTH:
-                new_position.row++;
-                break;
-            case WEST:
-                new_position.col--;
-                break;
-        }
+
+        // move to the new appropriate position
+        new_position.move(guard.direction);
 
         // the new position is outside of the board space
-        if (!board.is_valid_pos(new_position)) {
+        if (!board.is_valid_position(new_position)) {
             break;
         }
 
         // the new positions contains an obstacle
         //  -> turn right and continue
-        if (board.data[board.get_index(new_position)] == '#') {
-            switch (guard.direction) {
-                case NORTH:
-                    guard.direction = EAST;
-                    break;
-                case EAST:
-                    guard.direction = SOUTH;
-                    break;
-                case SOUTH:
-                    guard.direction = WEST;
-                    break;
-                case WEST:
-                    guard.direction = NORTH;
-                    break;
-            }
+        if (board.has_obstacle_at(new_position)) {
+            guard.rotate_right();
 
             continue;
         }
@@ -164,4 +196,96 @@ int main()
     }
 
     std::cout << "Positions traversed: " << visited_positions.size() << '\n';
+
+    if (!is_second_solution(argc, argv)) {
+        return 0;
+    }
+
+    // Now we have all the possible positions.
+    //  -> Try to insert obstacles at each of the positions
+    //     the guard can travel through.
+    //  -> Find the ones that cause the guard
+    //     to get stuck inside a loop.
+    int positions_causing_loops = 0;
+
+    // First remove the initial guard position.
+    // That is the only one, where an obstacle
+    // can't be placed.
+    visited_positions.erase(board.guard_position);
+
+    // Save the guard state when it encounters
+    // an obstacle. If this position
+    // is visited more than once, then we know,
+    // that the guard is stuck inside a loop.
+    std::unordered_map<size_t, Direction> obstacle_states;
+
+    for (size_t position : visited_positions) {
+        // Since the positions was visited by
+        // the guard in the previous run,
+        // the path shouldn't contain any obstacles.
+        assert(board.data[position] == EMPTY);
+
+        // Always reset the state of the guard
+        // and the obstacle states of the guard
+        // before trying to insert obstacles.
+        guard = board.get_initial_guard();
+        obstacle_states.clear();
+
+        // Insert the obstacle...
+        board.data[position] = INSERTED_OBSTACLE;
+
+        bool will_loop = false;
+
+        // Traverse the same way as before
+        while (board.is_valid_position(guard.position)) {
+            Position new_position = guard.position;
+
+            // move to the new appropriate position
+            new_position.move(guard.direction);
+
+            // The new position is outside of the board space.
+            //  -> Failed with placement of this obstacle,
+            //     the guard can escape the game plane.
+            //  -> Continue with trying other positions.
+            if (!board.is_valid_position(new_position)) {
+                break;
+            }
+
+            size_t new_position_index = board.get_index(new_position);
+
+            // the new positions contains an obstacle
+            //  -> turn right and continue
+            if (board.has_obstacle_at(new_position)) {
+
+                // This position was already visited
+                // and the guard was facing the same direction.
+                //    -> Stuck inside a loop.
+                if (obstacle_states.contains(new_position_index) &&
+                    obstacle_states[new_position_index] == guard.direction) {
+                    will_loop = true;
+
+                    break;
+                }
+
+                // Save the direction in which the guard
+                // encountered the current obstacle.
+                obstacle_states[new_position_index] = guard.direction;
+
+                guard.rotate_right();
+
+                continue;
+            }
+
+            // The new position is valid -> assign it to the guard
+            // and add it to the set of visited positions.
+            guard.position = new_position;
+        }
+
+        board.data[position] = EMPTY;
+        if (will_loop) {
+            positions_causing_loops++;
+        }
+    }
+
+    std::cout << "Positions causing loops: " << positions_causing_loops << '\n';
 }
