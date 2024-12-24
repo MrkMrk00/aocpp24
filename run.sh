@@ -3,6 +3,13 @@
 COMPILER="clang++"
 FLAGS="-o2 -std=c++23 -Wall -Wextra -Wpedantic -Werror -Wfloat-equal -fdiagnostics-color=always -Wno-sign-compare"
 
+if [[ "$1" == "clean" ]]; then
+    echo "Cleaning up the binary cache..."
+    rm /tmp/aocpp24-*.out
+
+    exit 0
+fi
+
 SOURCE=$1
 ARGS=${@:2}
 ARGS_EXE=""
@@ -28,6 +35,7 @@ else
 fi
 
 echo "Running ${SOURCE} with args: \"$ARGS_EXE\""
+echo "-----------------------------------"
 
 if [[ -f "/usr/bin/time" && "${VERBOSE_TIME}" == "1" ]]; then
     /usr/bin/time --verbose $EXE $ARGS_EXE 2>&1
