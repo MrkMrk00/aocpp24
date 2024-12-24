@@ -29,7 +29,7 @@ fi
 
 echo "Running ${SOURCE} with args: \"$ARGS_EXE\""
 
-if [[ -f "/usr/bin/time" && "${BASH_TIME}" != "1" ]]; then
+if [[ -f "/usr/bin/time" && "${VERBOSE_TIME}" == "1" ]]; then
     /usr/bin/time --verbose $EXE $ARGS_EXE 2>&1
 else
     time $EXE $ARGS_EXE
