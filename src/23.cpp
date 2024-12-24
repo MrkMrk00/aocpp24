@@ -43,30 +43,23 @@ const char* test_input = "kh-tc\n"
                          "td-yn\n";
 #endif
 
-typedef std::unordered_map<std::string_view,
-                           std::unordered_set<std::string_view>>
+typedef std::unordered_map<std::string, std::unordered_set<std::string>>
   ConnectionsMap;
 
 int main()
 {
 #ifdef TEST
-    std::string input = test_input;
+    std::istringstream input_stream{ test_input };
 #else
-    std::ifstream f{ "./input/23.txt" };
-    std::ostringstream oss;
-    oss << f.rdbuf();
-
-    std::string input = oss.str();
+    std::ifstream input_stream{ "./input/23.txt" };
 #endif
 
-    constexpr int line_length = 6;
-
     ConnectionsMap connections_map;
-    for (size_t pos = 0; pos < input.length(); pos += line_length) {
-        const char* line_start = input.data() + pos;
 
-        std::string_view from{ line_start, 2 };
-        std::string_view to{ line_start + 3, 2 };
+    std::string line;
+    while (std::getline(input_stream, line)) {
+        std::string from{ line.data(), 2 };
+        std::string to{ line.data() + 3, 2 };
 
         connections_map[from].insert(to);
         connections_map[to].insert(from);
@@ -75,7 +68,7 @@ int main()
     std::unordered_set<std::string> triple_connections;
 
     // used for sorting the connection keys
-    std::array<std::string_view, 3> keys;
+    std::array<std::string, 3> keys;
 
     for (auto a = connections_map.begin(); a != connections_map.end(); a++) {
         for (auto b = std::next(a); b != connections_map.end(); b++) {
@@ -85,7 +78,7 @@ int main()
             }
 
             // A, C connected
-            for (const auto maybe_common_key : a->second) {
+            for (const auto& maybe_common_key : a->second) {
                 // B, C connected
                 if (!b->second.contains(maybe_common_key)) {
                     continue;
