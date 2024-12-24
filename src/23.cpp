@@ -1,10 +1,12 @@
+#include "utils.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <iterator>
-#include <sstream>
+#include <ranges>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -46,32 +48,16 @@ const char* test_input = "kh-tc\n"
 typedef std::unordered_map<std::string, std::unordered_set<std::string>>
   ConnectionsMap;
 
-int main()
+static std::unordered_set<std::string> find_triples(
+  const ConnectionsMap& connections)
 {
-#ifdef TEST
-    std::istringstream input_stream{ test_input };
-#else
-    std::ifstream input_stream{ "./input/23.txt" };
-#endif
-
-    ConnectionsMap connections_map;
-
-    std::string line;
-    while (std::getline(input_stream, line)) {
-        std::string from{ line.data(), 2 };
-        std::string to{ line.data() + 3, 2 };
-
-        connections_map[from].insert(to);
-        connections_map[to].insert(from);
-    }
-
     std::unordered_set<std::string> triple_connections;
 
     // used for sorting the connection keys
     std::array<std::string, 3> keys;
 
-    for (auto a = connections_map.begin(); a != connections_map.end(); a++) {
-        for (auto b = std::next(a); b != connections_map.end(); b++) {
+    for (auto a = connections.begin(); a != connections.end(); a++) {
+        for (auto b = std::next(a); b != connections.end(); b++) {
             // A, B connected
             if (!b->second.contains(a->first)) {
                 continue;
@@ -106,7 +92,88 @@ int main()
         }
     }
 
-    std::cout << '\n'
-              << "Connections count: " << triple_connections.size()
-              << std::endl;
+    return triple_connections;
+}
+
+std::vector<std::string> find_largest_group(const ConnectionsMap& connections)
+{
+    std::vector<std::string> largest_group;
+    std::vector<std::string> current_group;
+
+    for (auto root = connections.begin(); root != connections.end(); root++) {
+        current_group.clear();
+        current_group.push_back(root->first);
+
+        for (auto me = std::next(root); me != connections.end(); me++) {
+            // Am I (node `me`) connected to all of the nodes
+            // in the current_group?
+            bool all_connected = true;
+
+            for (const auto& group_member : current_group) {
+                if (!me->second.contains(group_member)) {
+                    all_connected = false;
+
+                    break;
+                }
+            }
+
+            if (all_connected) {
+                current_group.push_back(me->first);
+            }
+        }
+
+        if (current_group.size() > largest_group.size()) {
+            largest_group = current_group;
+        }
+    }
+
+    return largest_group;
+}
+
+std::string get_password_from_group(const std::vector<std::string>& group_)
+{
+    namespace r = std::ranges::views;
+
+    std::vector<std::string> group = group_;
+    std::sort(group.begin(), group.end());
+
+    const auto joined_view = r::join_with(group, ',');
+
+    return std::string{ joined_view.begin(), joined_view.end() };
+}
+
+int main(int argc, char* argv[])
+{
+#ifdef TEST
+    std::istringstream input_stream{ test_input };
+#else
+    std::ifstream input_stream{ "./input/23.txt" };
+#endif
+
+    ConnectionsMap connections_map;
+
+    std::string line;
+    while (std::getline(input_stream, line)) {
+        std::string from{ line.data(), 2 };
+        std::string to{ line.data() + 3, 2 };
+
+        connections_map[from].insert(to);
+        connections_map[to].insert(from);
+    }
+
+    if (!is_second_solution(argc, argv)) {
+        auto triplets = find_triples(connections_map);
+
+        std::cout << '\n'
+                  << "Connections count: " << triplets.size() << std::endl;
+
+        return 0;
+    }
+
+    std::vector<std::string> largest_group =
+      find_largest_group(connections_map);
+
+    std::string password = get_password_from_group(largest_group);
+
+    std::cout << '\n' << std::format("Password = {}\n", password);
 }
