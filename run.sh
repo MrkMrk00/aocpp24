@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-[[ "${COMPILER}" != ""]] || COMPILER="clang++"
+[[ "${COMPILER}" != "" ]] || COMPILER="clang++"
+
 FLAGS="-o2 -std=c++23 -Wall -Wextra -Wpedantic -Werror -Wfloat-equal -fdiagnostics-color=always -Wno-sign-compare ${FLAGS}"
 
 if [[ "${BIN_PATH}" == "" ]]; then
