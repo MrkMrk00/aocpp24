@@ -67,7 +67,7 @@ struct Equation
     {
         assert(operators.size() == operands.size() - 1);
 
-        int64_t sum = operands.at(0);
+        int64_t sum = operands[0];
 
         for (size_t pos_in_equation = 0; pos_in_equation < operators.size();
              pos_in_equation++) {
@@ -77,7 +77,7 @@ struct Equation
             }
 
             Operation operation = operators[pos_in_equation];
-            int64_t operand = operands.at(pos_in_equation + 1);
+            int64_t operand = operands[pos_in_equation + 1];
 
             switch (operation) {
                 case ADD:
@@ -112,7 +112,7 @@ static std::vector<Equation> parse_equations(std::istream& stream)
         }
 
         assert(equation_operands.size() > 1);
-        equations.emplace_back(result, equation_operands);
+        equations.emplace_back(result, std::move(equation_operands));
 
         stream.ignore(1, '\n');
     }
@@ -157,7 +157,6 @@ int main(int argc, char* argv[])
     int64_t valid_equations_sum = 0;
 
     std::vector<OpCombination> combinations;
-    std::vector<OpCombination> should_push;
 
     for (const Equation& equation : parse_equations(input)) {
         combinations.clear();
@@ -173,23 +172,22 @@ int main(int argc, char* argv[])
 
             combination[0] = op;
 
-            combinations.emplace_back(combination);
+            combinations.push_back(std::move(combination));
         }
+
+        combinations.reserve(std::pow(OPERATIONS_COUNT, n_positions));
 
         // other positions
         for (size_t position = 1; position < n_positions; position++) {
-            should_push.clear();
-
+            // here I need to actually copy the combinations
             for (const auto& combination : combinations) {
-                should_push.emplace_back(combination);
-            }
-
-            for (auto& combination_to_change : should_push) {
                 for (Operation op = static_cast<Operation>(1);
                      op < OPERATIONS_COUNT;
                      op = static_cast<Operation>(op + 1)) {
-                    combination_to_change[position] = op;
-                    combinations.emplace_back(combination_to_change);
+
+                    OpCombination new_combination = combination;
+                    new_combination[position] = op;
+                    combinations.push_back(std::move(new_combination));
                 }
             }
         }

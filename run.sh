@@ -3,9 +3,13 @@
 COMPILER="clang++"
 FLAGS="-o2 -std=c++23 -Wall -Wextra -Wpedantic -Werror -Wfloat-equal -fdiagnostics-color=always -Wno-sign-compare"
 
+if [[ "${BIN_PATH}" == "" ]]; then
+    BIN_PATH="/tmp/aocpp24"
+fi
+
 if [[ "$1" == "clean" ]]; then
     echo "Cleaning up the binary cache..."
-    rm /tmp/aocpp24-*.out
+    rm $BIN_PATH/aocpp24-*.out
 
     exit 0
 fi
@@ -25,7 +29,9 @@ SOURCE_ABS=$(realpath "./src/${SOURCE}.cpp")
 # Hash the compiler input -> no need to recompile of nothing changed.
 # The source file itself and the compiler used, compiler flags, -D defines, ...
 ARGS_SUM=$(echo "${COMPILER}${FLAGS}${ARGS}" | md5sum | cut -d' ' -f1)
-EXE="/tmp/aocpp24-$(md5sum $SOURCE_ABS | cut -d' ' -f1)-${ARGS_SUM}.out"
+EXE="/${BIN_PATH}/aocpp24-$(md5sum $SOURCE_ABS | cut -d' ' -f1)-${ARGS_SUM}.out"
+
+[[ -d "$BIN_PATH" ]] || mkdir -p "$BIN_PATH"
 
 if [[ ! -f "$EXE" ]]; then
     echo "Compiling ${SOURCE} with custom args: \"${ARGS}\""
