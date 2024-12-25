@@ -1,3 +1,5 @@
+#include "./utils.h"
+
 #include <cctype>
 #include <format>
 #include <fstream>
@@ -51,7 +53,8 @@ const char* test_input = "............\n"
                          "............\n"
                          "............\n";
 #endif
-int main()
+
+int main(int argc, char* argv[])
 {
 #ifdef TEST
     std::istringstream input{ test_input };
@@ -91,22 +94,48 @@ int main()
         for (auto a = antena_positions.begin(); a != antena_positions.end();
              a++) {
             for (auto b = std::next(a); b != antena_positions.end(); b++) {
-                Position a2b_vec{ .row = b->row - a->row,
-                                  .col = b->col - a->col };
+                Position dir{ .row = b->row - a->row, .col = b->col - a->col };
 
-                // make a negative vector a add it to the point a
-                Position pos_from_a{ .row = a->row - a2b_vec.row,
-                                     .col = a->col - a2b_vec.col };
+                if (!is_second_solution(argc, argv)) {
+                    // make a negative vector a add it to the point a
+                    Position pos_from_a{ .row = a->row - dir.row,
+                                         .col = a->col - dir.col };
 
-                if (board.is_valid_position(pos_from_a)) {
-                    unique_positions.insert(board.get_index(pos_from_a));
+                    if (board.is_valid_position(pos_from_a)) {
+                        unique_positions.insert(board.get_index(pos_from_a));
+                    }
+
+                    Position pos_from_b{ .row = b->row + dir.row,
+                                         .col = b->col + dir.col };
+
+                    if (board.is_valid_position(pos_from_b)) {
+                        unique_positions.insert(board.get_index(pos_from_b));
+                    }
+
+                    continue;
                 }
 
-                Position pos_from_b{ .row = b->row + a2b_vec.row,
-                                     .col = b->col + a2b_vec.col };
+                // === Second solution ===
+                // All of the points that are a linear
+                // ?multiplication? of the vector
+                // from the starting coords (a -> b).
 
-                if (board.is_valid_position(pos_from_b)) {
-                    unique_positions.insert(board.get_index(pos_from_b));
+                Position potential_antinode = *a;
+                while (board.is_valid_position(potential_antinode)) {
+                    unique_positions.insert(
+                      board.get_index(potential_antinode));
+
+                    potential_antinode.row += dir.row;
+                    potential_antinode.col += dir.col;
+                }
+
+                potential_antinode = *a;
+                while (board.is_valid_position(potential_antinode)) {
+                    unique_positions.insert(
+                      board.get_index(potential_antinode));
+
+                    potential_antinode.row -= dir.row;
+                    potential_antinode.col -= dir.col;
                 }
             }
         }
