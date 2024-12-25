@@ -6,6 +6,8 @@ The code can be run with the `run.sh` script, but it'll probably only work on Li
 
 ## Usage
 
+Put your puzzle input into a folder _input_ under the same name as the solution with the _.txt_ file extension. (Day 8 -> src/08.cpp, input/08.txt)
+
 Running first part of a solution
 ```{bash}
 ./run.sh 01
