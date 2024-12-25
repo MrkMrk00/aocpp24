@@ -29,7 +29,7 @@ SOURCE_ABS=$(realpath "./src/${SOURCE}.cpp")
 # Hash the compiler input -> no need to recompile of nothing changed.
 # The source file itself and the compiler used, compiler flags, -D defines, ...
 ARGS_SUM=$(echo "${COMPILER}${FLAGS}${ARGS}" | md5sum | cut -d' ' -f1)
-EXE="/${BIN_PATH}/aocpp24-$(md5sum $SOURCE_ABS | cut -d' ' -f1)-${ARGS_SUM}.out"
+EXE="${BIN_PATH}/aocpp24-$(md5sum $SOURCE_ABS | cut -d' ' -f1)-${ARGS_SUM}.out"
 
 [[ -d "$BIN_PATH" ]] || mkdir -p "$BIN_PATH"
 

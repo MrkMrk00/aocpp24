@@ -5,8 +5,10 @@
 #include <cmath>
 #include <cstdint>
 #include <fstream>
+#include <future>
 #include <iostream>
 #include <istream>
+#include <span>
 #include <sstream>
 #include <vector>
 
@@ -132,33 +134,12 @@ static OpCombination empty_combination(size_t n_positions)
     return combination;
 }
 
-int main(int argc, char* argv[])
+static int64_t process_equations(const std::span<Equation>& equations)
 {
-#ifdef TEST
-    std::istringstream input{ "190: 10 19\n"
-                              "3267: 81 40 27\n"
-                              "83: 17 5\n"
-                              "156: 15 6\n"
-                              "7290: 6 8 6 15\n"
-                              "161011: 16 10 13\n"
-                              "192: 17 8 14\n"
-                              "21037: 9 7 18 13\n"
-                              "292: 11 6 16 20\n" };
-#else
-    std::ifstream input{ "./input/07.txt" };
-#endif
-
-    Operation last_supported_operation = MULTIPLY;
-    if (is_second_solution(argc, argv)) {
-        last_supported_operation = CONCAT;
-    }
-    OPERATIONS_COUNT = last_supported_operation + 1;
-
     int64_t valid_equations_sum = 0;
-
     std::vector<OpCombination> combinations;
 
-    for (const Equation& equation : parse_equations(input)) {
+    for (const Equation& equation : equations) {
         combinations.clear();
 
         const size_t n_positions = equation.operands.size() - 1;
@@ -192,31 +173,74 @@ int main(int argc, char* argv[])
             }
         }
 
-        for (const OpCombination& combination : combinations) {
+        for (const auto& combination : combinations) {
             if (!equation.try_solve(combination)) {
                 continue;
             }
 
-            // The current combination of operators solve
-            // the current equation.
-
             valid_equations_sum += equation.result;
-
-#ifdef TEST
-            std::cout << std::format("Matches ({})\n", equation.to_string());
-
-            std::cout << equation.operands.at(0);
-            for (size_t i = 0; i < combination.size(); i++) {
-                std::cout << operation_to_char(combination[i])
-                          << equation.operands.at(i + 1);
-            }
-
-            std::cout << " = " << equation.result << '\n';
-#endif
-
-            break;
         }
     }
 
-    std::cout << "Sum of valid equations: " << valid_equations_sum << '\n';
+    return valid_equations_sum;
+}
+
+int main(int argc, char* argv[])
+{
+#ifdef TEST
+    std::istringstream input{ "190: 10 19\n"
+                              "3267: 81 40 27\n"
+                              "83: 17 5\n"
+                              "156: 15 6\n"
+                              "7290: 6 8 6 15\n"
+                              "161011: 16 10 13\n"
+                              "192: 17 8 14\n"
+                              "21037: 9 7 18 13\n"
+                              "292: 11 6 16 20\n" };
+#else
+    std::ifstream input{ "./input/07.txt" };
+#endif
+
+    Operation last_supported_operation = MULTIPLY;
+    if (is_second_solution(argc, argv)) {
+        last_supported_operation = CONCAT;
+    }
+
+    OPERATIONS_COUNT = last_supported_operation + 1;
+    int thread_count = std::thread::hardware_concurrency();
+    if (thread_count == 0) {
+        thread_count = 4;
+    }
+
+    std::vector<Equation> equations = parse_equations(input);
+    size_t remaining_equations = equations.size();
+
+    std::vector<std::future<int64_t>> futures;
+
+    for (int t = thread_count; t > 0; t--) {
+        size_t n_equations_to_solve = remaining_equations / t;
+        auto vec_offset =
+          equations.begin() + (equations.size() - remaining_equations);
+
+        std::cout << std::format("Spawning thread {} with {} equations.\n",
+                                 (t - thread_count) * -1,
+                                 n_equations_to_solve);
+
+        std::span<Equation> thread_work{ vec_offset,
+                                         vec_offset + n_equations_to_solve };
+
+        std::future<int64_t> future =
+          std::async(std::launch::async, process_equations, thread_work);
+
+        futures.emplace_back(std::move(future));
+
+        remaining_equations -= n_equations_to_solve;
+    }
+
+    size_t total_valid = 0;
+    for (auto& future : futures) {
+        total_valid += future.get();
+    }
+
+    std::cout << "Sum of valid equations: " << total_valid << '\n';
 }
