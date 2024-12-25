@@ -28,6 +28,6 @@ Using the example data
 ### Env variables
 
 ```{bash}
-COMPILER="gcc" BIN_PATH=$(realpath ./bin) VERBOSE_TIME=1 ./run.sh 01b -DTEST
+COMPILER=g++ BIN_PATH=$(realpath ./bin) VERBOSE_TIME=1 ./run.sh 01b -DTEST
 ```
 
