@@ -1,3 +1,4 @@
 /cmd
 callgrind.out.*
 bin/
+/input/
