@@ -97,7 +97,6 @@ static void defragment_per_file(std::vector<int>& fs)
             // File fits into the current empty block
             //  -> do the copy.
             if (empty_block_size >= file_size) {
-
                 for (int offset = 0; offset < file_size; offset++) {
                     int free_index =
                       empty_block_end - empty_block_size + offset + 1;
@@ -115,7 +114,6 @@ static void defragment_per_file(std::vector<int>& fs)
         }
 
         j = file_start;
-        // std::cout << "file_start: " << fs[file_start - 1] << '\n';
     }
 }
 
