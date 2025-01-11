@@ -1,7 +1,7 @@
+#include "utils.h"
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <unordered_set>
 #include <vector>
 
 struct Pos
@@ -73,7 +73,7 @@ struct Board
     }
 };
 
-int main()
+int main(int argc, char** argv)
 {
 #ifdef TEST
     std::istringstream input{
@@ -98,7 +98,7 @@ int main()
     int trailend_count = 0;
 
     std::vector<Pos> to_visit;
-    std::unordered_set<size_t> visited;
+    std::vector<size_t> visited;
 
     for (size_t i = 0; i < board.data.size(); i++) {
         if (board.data[i] != '0') {
@@ -118,11 +118,13 @@ int main()
             to_visit.pop_back();
 
             size_t current_index = board.get_index(current);
-            if (visited.contains(current_index)) {
+            if (!is_second_solution(argc, argv) &&
+                std::find(visited.begin(), visited.end(), current_index) !=
+                  visited.end()) {
                 continue;
             }
 
-            visited.insert(current_index);
+            visited.push_back(current_index);
             board.find_valid_next_positions(to_visit, current);
         }
 
@@ -133,6 +135,5 @@ int main()
         }
     }
 
-    std::cout << '\n';
     std::cout << "Trailend count = " << trailend_count << std::endl;
 }
