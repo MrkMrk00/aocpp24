@@ -130,6 +130,9 @@ int main(int argc, char** argv)
             continue;
         }
 
+        // Not optimal, but works...
+        // -> Better solution would be to calculate the variance of X and Y cordinates (separately).
+        //    That would not be O(N^2) like this loop is.
         size_t neighbor_count = 0;
         for (auto a = robots.begin(); a < robots.end(); a++) {
             bool has_neighbor = false;
